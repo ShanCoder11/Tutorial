@@ -3,16 +3,34 @@ using UnityEngine.InputSystem;
 
 public class PlayerBehaviour : MonoBehaviour
 {
+    // VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES -- VARIABLES
+
     PlayerInput playerInput;    
     InputAction moveAction;
+    Rigidbody rb;
 
-    Vector2 direction;
-    
+    private bool isGrounded;
+    private bool jumpInputReceived = false;
+
+    Vector2 moveInput;
+
+    [Header("Movement Settings")]
     [SerializeField] float playerSpeed;
+    [SerializeField] private float playerJumpHeight = 10f;
+
+    [Header("Ground Check Settings")]
+    [SerializeField] public Transform groundCheck;
+    [SerializeField] public LayerMask groundLayer;
+    [SerializeField] private float groundCheckRadius = 0.2f;
+
+
+
+    // BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        rb = GetComponent<Rigidbody>();
         playerInput = GetComponent<PlayerInput>();
         moveAction = playerInput.actions.FindAction("Walking");
     }
@@ -20,18 +38,36 @@ public class PlayerBehaviour : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        MovePlayer();
-
- //       if (direction.sqrMagnitude > 1f)
- //       {
- //          direction = direction.normalized;
- //       }
+        if (moveAction != null) 
+        {
+            moveInput = moveAction.ReadValue<Vector2>();
+        }
     }
+
+    void FixedUpdate()
+    {
+        MovePlayer();
+        PlayerJump();
+    }
+
+
+
+    // CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES -- CUSTOM CLASSES
 
     void MovePlayer()
     {
-        Debug.Log(direction);
-        direction = moveAction.ReadValue<Vector2>();
-        transform.position += new Vector3(direction.x, 0, direction.y) * Time.deltaTime * playerSpeed;
+        Vector3 moveDirection = new Vector3(moveInput.x, 0, moveInput.y);
+        rb.linearVelocity = new Vector3(moveDirection.x * playerSpeed, rb.linearVelocity.y, moveDirection.z * playerSpeed);
+    }
+
+    void PlayerJump()
+    {
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
+        jumpInputReceived = playerInput.actions.FindAction("Jumping").ReadValue<float>() == 1f;
+        if (jumpInputReceived && isGrounded)
+        {
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, playerJumpHeight, rb.linearVelocity.z);
+            jumpInputReceived = false;
+        }
     }
 }
