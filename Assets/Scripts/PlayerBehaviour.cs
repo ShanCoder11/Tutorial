@@ -11,11 +11,12 @@ public class PlayerBehaviour : MonoBehaviour
 
     private bool isGrounded;
     private bool jumpInputReceived = false;
+    private bool runInputReceived = false;
 
     Vector2 moveInput;
 
     [Header("Movement Settings")]
-    [SerializeField] float playerSpeed;
+    [SerializeField] float playerSpeed = 5f;
     [SerializeField] private float playerJumpHeight = 10f;
 
     [Header("Ground Check Settings")]
@@ -56,8 +57,20 @@ public class PlayerBehaviour : MonoBehaviour
 
     void MovePlayer()
     {
+        Debug.Log($"Player Normalized: {moveInput.sqrMagnitude}");
         Vector3 moveDirection = new Vector3(moveInput.x, 0, moveInput.y);
         rb.linearVelocity = new Vector3(moveDirection.x * playerSpeed, rb.linearVelocity.y, moveDirection.z * playerSpeed);
+
+        runInputReceived = playerInput.actions.FindAction("Running").ReadValue<float>() == 1f;
+        if (runInputReceived)
+        {
+            playerSpeed = 10f;
+        }
+        else
+        {
+            playerSpeed = 5f;
+        }
+
     }
 
     void PlayerJump()
