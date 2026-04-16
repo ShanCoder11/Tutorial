@@ -8,6 +8,7 @@ public class PlayerBehaviour : MonoBehaviour
     PlayerInput playerInput;    
     InputAction moveAction;
     Rigidbody rb;
+    public Transform orientation;
 
     private bool isGrounded;
     private bool jumpInputReceived = false;
@@ -23,8 +24,6 @@ public class PlayerBehaviour : MonoBehaviour
     [SerializeField] public Transform groundCheck;
     [SerializeField] public LayerMask groundLayer;
     [SerializeField] private float groundCheckRadius = 0.2f;
-
-
 
     // BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES -- BUILT-IN CLASSES
 
@@ -57,8 +56,19 @@ public class PlayerBehaviour : MonoBehaviour
 
     void MovePlayer()
     {
-        Debug.Log($"Player Normalized: {moveInput.sqrMagnitude}");
-        Vector3 moveDirection = new Vector3(moveInput.x, 0, moveInput.y);
+        // if we have to make a dashing movement or rolling one, etc., it would be very hard to make a billion if else statements
+
+        Transform cameraTransform = Camera.main.transform;
+
+        Vector3 cameraForward = cameraTransform.forward;
+        Vector3 cameraRight = cameraTransform.right;
+
+        cameraForward.y = 0;
+        cameraRight.y = 0;
+        cameraForward.Normalize();
+        cameraRight.Normalize();
+
+        Vector3 moveDirection = (cameraForward * moveInput.y + cameraRight * moveInput.x).normalized;
         rb.linearVelocity = new Vector3(moveDirection.x * playerSpeed, rb.linearVelocity.y, moveDirection.z * playerSpeed);
 
         runInputReceived = playerInput.actions.FindAction("Running").ReadValue<float>() == 1f;
@@ -75,6 +85,8 @@ public class PlayerBehaviour : MonoBehaviour
 
     void PlayerJump()
     {
+        // that's why i'm trying to change that
+
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
         jumpInputReceived = playerInput.actions.FindAction("Jumping").ReadValue<float>() == 1f;
         if (jumpInputReceived && isGrounded)
