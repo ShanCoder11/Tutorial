@@ -33,7 +33,7 @@ public class PlayerController : MonoBehaviour
         moveAction = playerInput.actions.FindAction("Walking");
 
         // Initialize it to IDLE state
-        // ... code for later
+        ChangeState(new IdleState(this));
     }
 
     // Update is called once per frame
@@ -49,7 +49,7 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
 
         // Current state handles its own logic
-        currentState.Update(); // ill explain later
+        currentState.Update(); 
     }
 
     private void FixedUpdate()
@@ -77,5 +77,5 @@ public class PlayerController : MonoBehaviour
     public float GetJumpHeight() => playerJumpHeight;
     
     public bool IsRunning() => playerInput.actions.FindAction("Running").ReadValue<float>() == 1f;
-    public bool GetJumpInput() => playerInput.actions.FindAction("Jumping-").ReadValue<float>() == 1f;
+    public bool GetJumpInput() => playerInput.actions.FindAction("Jumping").ReadValue<float>() == 1f;
 }

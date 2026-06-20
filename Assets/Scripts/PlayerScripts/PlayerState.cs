@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 // ===== BASE STATE CLASS =====
@@ -14,6 +15,24 @@ public abstract class PlayerState
     public virtual void Update() { }
     public virtual void FixedUpdate() { }
     public virtual void Exit() { }
+
+    // ===== UTILITY CLASSES (classes used by multiple states) =====
+    protected void MovePlayer(float speed)
+    {
+        Transform cameraTransform = controller.GetCameraTransform();
+        Vector3 cameraForward = cameraTransform.forward;
+        Vector3 cameraRight = cameraTransform.right;
+
+        cameraForward.y = 0;
+        cameraRight.y = 0;
+        cameraForward.Normalize();
+        cameraRight.Normalize();
+
+        Vector2 moveInput = controller.GetMoveInput();
+        Vector3 moveDirection = (cameraForward * moveInput.y + cameraRight * moveInput.x).normalized;
+
+        controller.GetRigidbody().linearVelocity = new Vector3(moveDirection.x * speed, controller.GetRigidbody().linearVelocity.y, moveDirection.z * speed);
+    }
 }
 
 // ===== IDLE STATE =====
@@ -24,7 +43,7 @@ public class IdleState : PlayerState
     public override void Enter()
     {
         // Stop movement when entering idle
-        controller.GetRigidbody().velocity = Vector3.zero;
+        controller.GetRigidbody().linearVelocity = Vector3.zero;
     }
 
     public override void Update()
@@ -86,22 +105,48 @@ public class WalkingState : PlayerState
     {
         MovePlayer(controller.GetPlayerSpeed());
     }
+}
 
-    private void MovePlayer(float speed)
+// ===== RUNNING STATE =====
+public class RunningState : PlayerState
+{
+    private float runSpeed = 10f;
+
+    public RunningState(PlayerController controller) : base(controller) { }
+
+    public override void Update()
     {
-        Transform cameraTransform = controller.GetCameraTransform();
-        Vector3 cameraForward = cameraTransform.forward;
-        Vector3 cameraRight = cameraTransform.right;
+        // Stop running if sprint input released
+        if (!controller.IsRunning())
+        {
+            if (controller.GetMoveInput().magnitude > 0)
+            {
+                controller.ChangeState(new WalkingState(controller));
+            }
+            else
+            {
+                controller.ChangeState(new IdleState(controller));
+            }
+            return;
+        }
 
-        cameraForward.y = 0;
-        cameraRight.y = 0;
-        cameraForward.Normalize();
-        cameraRight.Normalize();
+        // Stop running if no movement input
+        if (controller.GetMoveInput().magnitude == 0)
+        {
+            controller.ChangeState(new IdleState(controller));
+            return;
+        }
 
-        Vector2 moveInput = controller.GetMoveInput();
-        Vector3 moveDirection = (cameraForward * moveInput.y + cameraRight * moveInput.x).normalized;
+        // Jump from running
+        if (controller.GetJumpInput() && controller.IsGrounded())
+        {
+            controller.ChangeState(new JumpingState(controller));
+        }
+    }
 
-        controller.GetRigidbody().linearVelocity = new Vector3(moveDirection.x * speed, controller.GetRigidbody().linearVelocity.y, moveDirection.z * speed);
+    public override void FixedUpdate()
+    {
+        MovePlayer(runSpeed);
     }
 }
 
@@ -150,5 +195,11 @@ public class JumpingState : PlayerState
         cameraRight.Normalize();
 
         Vector2 moveInput = controller.GetMoveInput();
+        Vector3 moveDirection = (cameraForward * moveInput.y + cameraRight * moveInput.x).normalized;
+
+        // Reduced air control (60% of ground speed)
+        float airSpeed = controller.IsRunning() ? 10f * 0.6f : controller.GetPlayerSpeed() * 0.6f;
+        
+        controller.GetRigidbody().linearVelocity = new Vector3(moveDirection.x * airSpeed, controller.GetRigidbody().linearVelocity.y, moveDirection.z * airSpeed);
     }
 }
